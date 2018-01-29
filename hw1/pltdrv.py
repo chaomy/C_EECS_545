@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: chaomingyang
 # @Date:   2018-01-27 14:11:25
-# @Last Modified by:   chaomingyang
-# @Last Modified time: 2018-01-27 17:51:18
+# @Last Modified by:   chaomy
+# @Last Modified time: 2018-01-29 00:59:19
 
 import matplotlib.pyplot as plt
 from itertools import cycle
@@ -30,7 +30,7 @@ class myplt(object):
         self.mlabelsize = self.myfontsize - 2
         self.mmarkesize = self.myfontsize - 5
         self.mlabelsize = self.myfontsize - 2
-        self.mlegensize = self.myfontsize
+        self.mlegensize = self.myfontsize + 1
         self.line = ['--', '-.', '-',
                      '--', '--', '-.', '-']
         self.markers = ['o', '*', 'H', 'p', '3', '2',
@@ -98,7 +98,7 @@ class myplt(object):
         self.fig = plt.figure(figsize=mfigsize)
         return
 
-    def set_111plt(self, infigsize=(13., 6.), lim=False):
+    def set_111plt(self, infigsize=(10., 5.), lim=False):
         self.figsize = infigsize
         self.fig = plt.figure(figsize=self.figsize)
         self.ax = self.fig.add_subplot(111)
@@ -152,7 +152,7 @@ class myplt(object):
                 print "have coord"
                 ax.get_yaxis().set_label_coords(kwargs['coord'], 0.5)
             else:
-                ax.get_yaxis().set_label_coords(-0.070, 0.5)
+                ax.get_yaxis().set_label_coords(-0.060, 0.5)
             # ax.get_yaxis().set_label_coords(-0.07, 0.5)
         return
 

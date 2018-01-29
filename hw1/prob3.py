@@ -2,15 +2,11 @@
 # -*- coding: utf-8 -*-
 # @Author: chaomingyang
 # @Date:   2018-01-25 22:15:39
-# @Last Modified by:   chaomingyang
-# @Last Modified time: 2018-01-27 17:52:41
+# @Last Modified by:   chaomy
+# @Last Modified time: 2018-01-29 00:52:42
 
 
-# w0 + w1 * x1 + w2 * x2 ... + w13 * x13
-# err = xx * ww - yy
-# gradient = A^t (A w - b) -> grd = xx.transpose() * (xx * ww - yy)
-
-
+from itertools import cycle
 import numpy as np
 import hw1
 
@@ -19,33 +15,51 @@ class pb3(hw1.hw1):
 
     def __init__(self):
         hw1.hw1.__init__(self)
+        self.normalize_train_and_test()
 
-    def bgd(self, xx, yy, lmd=0.0):
-        ww = np.mat(-0.1 + 0.2 * np.random.rand(xx.shape[1], 1))
-        eta, mxstep = 5e-4, 500
-        ls = np.mean(np.power((xx * ww - yy), 2)) + lmd * np.power(ww, 2) + 100
+    def train(self, phi, yy, order=1, lmd=0.1):
+        (m, n) = phi.shape
+        ww = np.linalg.inv(phi.transpose() * phi +
+                           np.identity(n) * lmd * m) * phi.transpose() * yy
+        rmse = np.sqrt(np.mean(np.power(phi * ww - yy, 2)))
+        return rmse, ww
 
-        rcd = np.ndarray([mxstep, 2])
-        for i in range(mxstep):
-            tm = xx * ww - yy
-            cr = np.mean(np.power(tm, 2)) + lmd * np.power(ww, 2)
-            if (ls - cr) < 1e-2:
-                ls = cr
-                break
-            # print i, ls, cr, ls - cr
-            ww = ww - eta * (xx.transpose() * tm + lmd * ww)
-            ls = cr
-            rcd[i, :] = i, cr
-        rcd = rcd[:i, :]
-        return ls, ww, rcd
+    def ploterr(self, dat, fnm, xlb, ylb):
+        self.set_111plt()
+        self.ax.plot(dat[:, 0], dat[:, 1],
+                     label="train", **next(self.keysiter))
+        self.ax.plot(dat[:, 0], dat[:, 2],
+                     label="validation", **next(self.keysiter))
+        self.ax.plot(dat[:, 0], dat[:, 3],
+                     label="test", **next(self.keysiter))
+        self.add_x_labels(cycle([xlb]), self.ax)
+        self.add_y_labels(cycle([ylb]), self.ax)
+        self.set_tick_size(self.ax)
+        self.add_legends(self.ax)
+        self.fig.savefig(fnm, **self.figsave)
 
     def qb(self):
         xx, yy = self.get_train_data()
-        bgd(xx, yy, )
-        return
+        xtest, ytest = self.get_test_data()
+        m = int(0.9 * xx.shape[0])  # training set 90%
+        tx, ty = xx[:m], yy[:m]
+        vx, vy = xx[m:], yy[m:]
+
+        phitx = self.get_feature(tx, 1)
+        phivx = self.get_feature(vx, 1)
+        phitest = self.get_feature(xtest, 1)
+
+        lmds = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+        dat = np.ndarray([len(lmds), 4])
+
+        for i, lmd in zip(range(len(lmds)), lmds):
+            te, ww = self.train(phitx, ty, 1, lmd)
+            dat[i, :] = lmd, te, np.sqrt(np.mean(np.power(phivx * ww - vy, 2))), np.sqrt(np.mean(np.power(phitest * ww - ytest, 2)))
+
+        self.ploterr(dat, "figQ3b.png", r"$\lambda$", "error")
+        print dat
 
 
 if __name__ == '__main__':
-    drv = pb2()
-    drv.qa()
+    drv = pb3()
     drv.qb()
