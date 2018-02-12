@@ -2,7 +2,7 @@
 # @Author: chaomingyang
 # @Date:   2018-01-27 14:11:25
 # @Last Modified by:   chaomy
-# @Last Modified time: 2018-02-10 22:29:15
+# @Last Modified time: 2018-02-12 01:45:03
 
 import matplotlib.pyplot as plt
 from itertools import cycle
@@ -28,7 +28,7 @@ class myplt(object):
     def __init__(self):
         self.myfontsize = 16
         self.mlabelsize = self.myfontsize - 2
-        self.mmarkesize = self.myfontsize - 5
+        self.mmarkesize = self.myfontsize - 7 
         self.mlabelsize = self.myfontsize - 2
         self.mlegensize = self.myfontsize + 1
         self.line = ['--', '-.', '-',

@@ -3,13 +3,15 @@
 # @Author: chaomy
 # @Date:   2018-02-09 23:47:35
 # @Last Modified by:   chaomy
-# @Last Modified time: 2018-02-10 17:01:31
+# @Last Modified time: 2018-02-12 14:50:40
 
 import hw2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import matplotlib.cm as cm
+from sys import stdout
+from itertools import cycle
 from matplotlib.ticker import NullFormatter
 
 
@@ -91,7 +93,6 @@ class pb2(hw2.hw2):
         # N(xa | mu_a, sigma_aa)
         sigma_aa = sigma[np.ix_(given_indices, given_indices)]
         mu_a = mu[np.ix_([0], given_indices)].transpose()
-        print mu_a.shape, sigma_aa.shape
         return mu_a, sigma_aa
 
     def conditional_for_gaussian(self, sigma, mu, given_indices, given_values):
@@ -101,7 +102,6 @@ class pb2(hw2.hw2):
         # mu_b|a = mu_b + sigma_ba sigma_aa^-1 (xa - mu_a)
         indxall = np.arange(sigma.shape[0])
         return_indices = np.delete(indxall, given_indices)
-        print given_indices, return_indices
 
         sigma_aa = sigma[np.ix_(given_indices, given_indices)]
         sigma_bb = sigma[np.ix_(return_indices, return_indices)]
@@ -119,7 +119,7 @@ class pb2(hw2.hw2):
     def qb(self):
         (mu_a, sigma_aa) = self.marginal_for_guassian(
             test_sigma_1, test_mu_1, indices_1)
-        self.plt2Dmargin(test_mu_1.transpose(), test_sigma_1, fnm="figQ2b.png")
+        self.pltmargin(test_mu_1.transpose(), test_sigma_1, fnm="figQ2b.png")
 
     def qc(self):
         self.conditional_for_gaussian(
@@ -128,20 +128,40 @@ class pb2(hw2.hw2):
     def qd(self):
         (mu_b_a, sigma_b_a) = self.conditional_for_gaussian(
             test_sigma_2, test_mu_2, indices_2, values_2)
-        self.plt2Dmargin(mu_b_a, sigma_b_a, fnm="figQ2d.png")
 
-    def plt2Dimg(self, X, Y, Z):
-        cs = self.ax.imshow(Z, interpolation='none',
-                            extent=[-3.0, 3.0, 3.0, -3.0], cmap="plasma")
-        self.fig.colorbar(cs)
-        self.fig.savefig("fig_2D_image.png")
+        stdout.write("conditional mean vectors\n")
+        np.savetxt(stdout, mu_b_a, fmt="%.3f")
+        stdout.write("conditional covariance matrices\n")
+        np.savetxt(stdout, sigma_b_a, fmt="%.3f")
 
-    def plt2Dcontour(self, X, Y, Z):
-        cs = self.ax.contour(X, Y, Z)
-        self.ax.clabel(cs, inline=0.1, fontsize=12)
-        self.fig.savefig("fig_2D_gaussian.png")
+        self.plt2Dcondition(mu_b_a, sigma_b_a, fnm="figQ2d.png", lbs=["X1", "X4"])
 
-    def plt2Dmargin(self, mu, sigma, fnm='fig_2D.png'):
+    def pltmargin(self, mu, sigma, fnm='fig_2D.png', lbs=["X1", "P(X1)"]):
+        self.set_111plt((8, 8))
+        plot_delta = 0.025
+        xx = np.arange(-3.0, 3.0, plot_delta)
+        yy = np.arange(-3.0, 3.0, plot_delta)
+        X, Y = np.meshgrid(xx, yy)
+        Z = np.zeros((xx.shape[0], yy.shape[0]))
+        n = xx.shape[0]
+        invsig = np.linalg.inv(sigma)
+        for i in range(n):
+            for j in range(n):
+                ps = np.mat([X[i, j], Y[i, j]]).transpose()
+                Z[i, j] = np.exp(-0.5 * (ps - mu).transpose() *
+                                 invsig * (ps - mu))
+        Z = Z / np.sqrt(np.power(2. * np.pi,
+                                 mu.shape[0]) * np.linalg.det(sigma))
+        nullfmt = NullFormatter()         # no labels
+        plt.figure(figsize=(8, 8))
+        ax2d = plt.axes()
+        ax2d.set_xlabel(lbs[0], {'fontsize': self.myfontsize})
+        ax2d.set_ylabel(lbs[1], {'fontsize': self.myfontsize})
+        ax2d.plot(xx, mlab.normpdf(xx, mu[0, 0], sigma[0, 0]),
+                  lw=4, color=self.colorlist[0])
+        plt.savefig(fnm)
+
+    def plt2Dcondition(self, mu, sigma, fnm='fig_2D.png', lbs=["X1", "X2"]):
         self.set_111plt((8, 8))
         plot_delta = 0.025
         xx = np.arange(-3.0, 3.0, plot_delta)
@@ -152,7 +172,6 @@ class pb2(hw2.hw2):
         n = xx.shape[0]
         invsig = np.linalg.inv(sigma)
 
-        print np.mat([X[0, 0], Y[0, 0]]).transpose()
         for i in range(n):
             for j in range(n):
                 ps = np.mat([X[i, j], Y[i, j]]).transpose()
@@ -161,7 +180,38 @@ class pb2(hw2.hw2):
         Z = Z / np.sqrt(np.power(2. * np.pi,
                                  mu.shape[0]) * np.linalg.det(sigma))
         nullfmt = NullFormatter()         # no labels
-        thick = 0.15
+        plt.figure(figsize=(8, 8))
+        ax2d = plt.axes()
+        ax2d.set_xlabel(lbs[0], {'fontsize': self.myfontsize})
+        ax2d.set_ylabel(lbs[1], {'fontsize': self.myfontsize})
+        extent = [-3.0, 3.0, -3.0, 3.0]
+        cs = ax2d.contour(X, Y, Z, extent=extent, origin='upper')
+        self.ax.clabel(cs, inline=0.1, lw=5, fontsize=16,
+                       extent=extent, colors=self.colorlist)
+        cs = ax2d.imshow(Z, interpolation='none',
+                         extent=extent, origin='lower', cmap="plasma")
+        plt.savefig(fnm)
+
+    def plt2Dmargin(self, mu, sigma, fnm='fig_2D.png', lbs=["X1", "X2"]):
+        self.set_111plt((8, 8))
+        plot_delta = 0.025
+        xx = np.arange(-3.0, 3.0, plot_delta)
+        yy = np.arange(-3.0, 3.0, plot_delta)
+        X, Y = np.meshgrid(xx, yy)
+        Z = np.zeros((xx.shape[0], yy.shape[0]))
+
+        n = xx.shape[0]
+        invsig = np.linalg.inv(sigma)
+
+        for i in range(n):
+            for j in range(n):
+                ps = np.mat([X[i, j], Y[i, j]]).transpose()
+                Z[i, j] = np.exp(-0.5 * (ps - mu).transpose() *
+                                 invsig * (ps - mu))
+        Z = Z / np.sqrt(np.power(2. * np.pi,
+                                 mu.shape[0]) * np.linalg.det(sigma))
+        nullfmt = NullFormatter()         # no labels
+        thick = 0.1
         left, width = 0.1, 0.65
         bottom, height = 0.1, 0.65
         bottom_h = left_h = left + width + 0.02
@@ -179,6 +229,9 @@ class pb2(hw2.hw2):
         ax1x.xaxis.set_major_formatter(nullfmt)
         ax1y.yaxis.set_major_formatter(nullfmt)
 
+        ax2d.set_xlabel(lbs[0], {'fontsize': self.myfontsize})
+        ax2d.set_ylabel(lbs[1], {'fontsize': self.myfontsize})
+
         extent = [-3.0, 3.0, -3.0, 3.0]
         cs = ax2d.contour(X, Y, Z, extent=extent, origin='upper')
         self.ax.clabel(cs, inline=0.1, lw=5, fontsize=16,
@@ -195,5 +248,5 @@ class pb2(hw2.hw2):
 if __name__ == '__main__':
     drv = pb2()
     drv.qb()
-    # drv.qc()
+    drv.qc()
     drv.qd()

@@ -3,7 +3,7 @@
 # @Author: chaomy
 # @Date:   2018-02-10 15:31:54
 # @Last Modified by:   chaomy
-# @Last Modified time: 2018-02-10 16:56:25
+# @Last Modified time: 2018-02-12 02:11:11
 
 from matplotlib.ticker import NullFormatter
 import matplotlib.mlab as mlab
@@ -57,7 +57,7 @@ class bayesian_linear_regression(hw2.hw2):
         nullfmt = NullFormatter()         # no labels
 
         # definitions for the axes
-        thick = 0.15
+        thick = 0.10
         left, width = 0.1, 0.65
         bottom, height = 0.1, 0.65
         bottom_h = left_h = left + width + 0.02

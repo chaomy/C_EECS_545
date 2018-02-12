@@ -3,7 +3,7 @@
 # @Author: chaomy
 # @Date:   2018-02-09 14:15:27
 # @Last Modified by:   chaomy
-# @Last Modified time: 2018-02-09 23:45:14
+# @Last Modified time: 2018-02-12 14:33:41
 
 import hw2
 import numpy as np
@@ -37,60 +37,78 @@ class pb1(hw2.hw2):
         self.xtest, self.ytest = data_generator(
             (30, 1), noise_scale=noise_scale)
 
-    def qa(self):
-        xx, yy = self.xtrain, self.ytrain
-        phi = self.get_feature(xx, 1)
-        (mse, ww, yt) = self.closedformMSE(phi, yy)
+        self.xtrain = np.mat(self.xtrain)
+        self.ytrain = np.mat(self.ytrain)
+        self.xtest = np.mat(self.xtest)
+        self.ytest = np.mat(self.ytest)
 
-        xx, yy = self.xtest, self.ytest
-        phi = self.get_feature(xx, 1)
-        yt = phi * ww
-        mse = np.real(np.mean(np.power(yt - yy, 2)))
-        stdout.write("rmse = {}\n".format(mse))
-        self.ploterr(xx, yy, yt, "figQ1a.png")
+    def qa(self):
+        xtrain, ytrain = self.xtrain, self.ytrain
+        xtest, ytest = self.xtest, self.ytest
+        phitrain = self.get_feature(xtrain, 1)
+
+        (mse, ww, ptrain) = self.closedformMSE(phitrain, ytrain)
+        phitest = self.get_feature(xtest, 1)
+        ptest = phitest * ww
+        mse = np.real(np.mean(np.power(ptest - ytest, 2)))
+        stdout.write("test mse = {}\n".format(mse))
+        self.plotlabels(xtest, ytest, ptest, [
+            'test', 'linear regression'], "figQ1a.png")
 
     def qb(self):
         xtrain, ytrain = self.xtrain, self.ytrain
-        sigma_paras = [0.1, 0.2, 0.4, 0.8, 1.6]  # bandwidth parameters
-        n = xtrain.shape[0]
-        phixt = self.get_feature(xtrain, 1)
-        # sgm = 0.2
-        sgm = 0.2
-        yt = np.zeros(ytrain.shape)
-        for i in range(n):  # calculate R matrix for each x[i]
-            rr = np.exp(-0.5 * (np.power(xtrain[i] - xtrain, 2)) / sgm**2)
-            sr = np.diag(np.sqrt(rr).A1)
-            ww = np.linalg.pinv(sr.transpose() * phixt) * sr * ytrain
-            yt[i] = phixt[i] * ww
-
         xtest, ytest = self.xtest, self.ytest
-        n = xtest.shape[0]
-        yt = np.zeros(ytest.shape)
-        for i in range(n):
-            rr = np.exp(-0.5 * (np.power(xtest[i] - xtrain, 2)) / sgm**2)
-            sr = np.diag(np.sqrt(rr).A1)
-            ww = np.linalg.pinv(sr.transpose() * phixt) * sr * ytrain
-            yt[i] = phixt[i] * ww
-        self.ploterr(xtest, self.ytest, yt, "figQ1b1.png")
-        # np.savetxt(stdout, r0, fmt="%.4f")
+        sigma_paras = [0.1, 0.2, 0.4, 0.8, 1.6, 2.0]  # bandwidth parameters
+
+        n = xtrain.shape[0]
+        phitrain = self.get_feature(xtrain, 1)
+        phitest = self.get_feature(xtest, 1)
+        rcd = np.ndarray([len(sigma_paras), 2])
+
+        for it, sgm in zip(range(len(sigma_paras)), sigma_paras):
+            n = xtest.shape[0]
+            ptest = np.zeros(ytest.shape)
+            for i in range(n):
+                rr = np.exp(-0.5 * (np.power(xtest[i] - xtrain, 2)) / sgm**2)
+                rmat = np.diag(rr.A1)
+                ww = np.linalg.inv(phitrain.transpose() *
+                                   rmat * phitrain) * phitrain.transpose() * rmat * ytrain
+                ptest[i] = phitest[i] * ww
+
+            if sgm in [0.2, 2.0]:
+                self.plotlabels(xtest, ytest, ptest,
+                                ["test", r"LWR $\tau$ = {:.3f}".format(sgm)], "figQ1b{:03}.png".format(it))
+
+            mse = np.real(np.mean(np.power(ptest - ytest, 2)))
+            stdout.write("bandwidth = {:.3f}, mse = {:.3f}\n".format(sgm, mse))
+            rcd[it, 0], rcd[it, 1] = sgm, mse
+        self.ploterr(rcd, "figQ1b3.png")
 
     def closedformMSE(self, phi, yy):
         ww = np.linalg.pinv(phi) * yy
         yt = phi * ww
-        rmse = np.real(np.mean(np.power(yt - yy, 2)))
-        return rmse, ww, yt
+        mse = np.real(np.mean(np.power(yt - yy, 2)))
+        return mse, ww, yt
 
-    def ploterr(self, xx, yy, yt, fnm):
-        self.set_111plt()
-        self.ax.plot(xx, yy, 'o', label='labels')
-        # self.ax.plot(xx, yt, '<', label='linear')
-        self.ax.plot(xx, yt, '<', label='locally weighted linear regression')
-        self.add_x_labels(cycle(["epochs"]), self.ax)
-        self.add_y_labels(cycle(["mse"]), self.ax)
+    def plotlabels(self, xx, yy, yt, lb, fnm):
+        self.set_111plt((10, 7))
+        self.ax.plot(xx, yy, 'o', label=lb[0], markersize=12)
+        self.ax.plot(xx, yt, '<', label=lb[1], markersize=12)
+        self.add_x_labels(cycle(["x"]), self.ax)
+        self.add_y_labels(cycle(["y"]), self.ax)
         self.set_tick_size(self.ax)
         self.add_legends(self.ax)
         self.fig.savefig(fnm, **self.figsave)
 
+    def ploterr(self, rcd, fnm):
+        self.set_111plt((10, 7))
+        self.ax.plot(rcd[:, 0], rcd[:, 1], '-o',
+                     label="MSE vs. Kernerl Width", markersize=12, color=self.colorlist[1])
+        self.add_x_labels(cycle(["Kernel width"]), self.ax)
+        self.add_y_labels(cycle(["MSE"]), self.ax)
+        self.set_tick_size(self.ax)
+        self.add_legends(self.ax)
+        self.fig.savefig(fnm, **self.figsave)
 
 if __name__ == '__main__':
     drv = pb1()

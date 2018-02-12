@@ -3,7 +3,7 @@
 # @Author: chaomy
 # @Date:   2018-02-09 14:17:32
 # @Last Modified by:   chaomy
-# @Last Modified time: 2018-02-10 15:32:49
+# @Last Modified time: 2018-02-12 00:29:52
 
 import numpy as np
 import pltdrv
@@ -19,9 +19,22 @@ class hw2(pltdrv.myplt):
             mn = np.mean(xx, axis=0)
             st = np.std(xx, axis=0)
 
+        n0 = np.where(st != 0)[1]
+        i0 = np.where(st == 0)[1]
+
+        xx[:, n0] = (xx[:, n0] - mn[:, n0]) / st[:, n0]
+        xx[:, i0] = (xx[:, i0] - mn[:, i0])
+        return xx, mn, st
+
+    def normalizeNotMat(self, xx, mn=None, st=None):
+        if mn is None:
+            mn = np.mean(xx, axis=0)
+            st = np.std(xx, axis=0)
+
         if xx.shape[1] > 1:
             n0 = np.where(st != 0)
             i0 = np.where(st == 0)
+
             xx[:, n0] = (xx[:, n0] - mn[:, n0]) / st[:, n0]
             xx[:, i0] = (xx[:, i0] - mn[:, i0])
         else:
